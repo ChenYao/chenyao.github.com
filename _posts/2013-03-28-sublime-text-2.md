@@ -2,7 +2,7 @@
 layout: post
 title: "Sublime Text 2试用感受"
 description: "Basic Introduction to Sublime Text 2"
-category: 
+category: Tool
 tags: [Editor, Sublime Text 2]
 ---
 {% include JB/setup %}
