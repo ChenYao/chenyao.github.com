@@ -3,7 +3,7 @@ layout: post
 title: "通过sqlplus批量执行SQL文件"
 description: ""
 category: 
-tags: []
+tags: [Oracle, sqlplus, 批量执行]
 ---
 {% include JB/setup %}
 
