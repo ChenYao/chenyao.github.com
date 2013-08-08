@@ -32,8 +32,7 @@ SpEL是从Spring 3.0开始引入的一个功能，用于支持运行时查询和
 
 可以通过如下方式来得到一个Bean的实例
 
-	ApplicationContext context = new ClassPathXmlApplicationContext(
-			"spring-beans.xml");
+	ApplicationContext context = new ClassPathXmlApplicationContext("spring-beans.xml");
 	context.getBean(String beanName);
 
 SpEL主要是要在<code>getBean</code>的过程中得到值，如上文<code>BeanA</code>的例子中，<code>Entity</code>的定义如下：
@@ -75,9 +74,9 @@ org.springframework.context.expression.StandardBeanExpressionResolver.java
     Expression expr = this.expressionCache.get(value);
 
     if (expr == null) {
-				expr = this.expressionParser.parseExpression(value, this.beanExpressionParserContext);
-				this.expressionCache.put(value, expr);
-		}
+        expr = this.expressionParser.parseExpression(value, this.beanExpressionParserContext);
+        this.expressionCache.put(value, expr);
+    }
     
     StandardEvaluationContext sec = this.evaluationCache.get(evalContext); 
     if (sec == null) { 
