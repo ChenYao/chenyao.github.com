@@ -67,7 +67,7 @@ SpEL主要是要在<code>getBean</code>的过程中得到值，如上文<code>Be
 看看第二步的详细代码：
 
 org.springframework.context.expression.StandardBeanExpressionResolver.java
-<java>
+<code>
 
     private final Map<BeanExpressionContext, StandardEvaluationContext> evaluationCache = new ConcurrentHashMap<BeanExpressionContext, StandardEvaluationContext>();
     Expression expr = this.expressionCache.get(value);
@@ -86,10 +86,10 @@ org.springframework.context.expression.StandardBeanExpressionResolver.java
     }
     return expr.getValue(sec);
 
-</java>
+</code>
 可以看出一样的SpEL表达式总是得到同一个的Expression对象，并且这个类<code>StandardBeanExpressionResolver</code>是非线程安全的，多线程环境下，同样的<code>evalContext</code>对象可能会得到不同的<code>StandardEvaluationContext</code>(sec)对象。第四步正是Expression对象通过<code>sec</code>得到表达式值的。而<code>StandardEvaluationContext</code>
 也是一个非线程安全的类，代码如下：
-<java>
+<code>
 
     public List<MethodResolver> getMethodResolvers() {
         ensureMethodResolversInitialized();
@@ -103,7 +103,7 @@ org.springframework.context.expression.StandardBeanExpressionResolver.java
         }
     }
 
-</java>
+</code>
 可以看出，多线程环境下，<code>methodResolvers</code>可能返回为一个空的ArrayList.
 
 这样就导致了如下的异常：
@@ -112,7 +112,7 @@ org.springframework.beans.factory.BeanExpressionException: Expression parsing fa
 </code>
 
 同样的道理，在这个类中还有同样的非线程安全的代码同样会导致相关的异常：
-<java>
+<code>
 
     public List<PropertyAccessor> getPropertyAccessors() {
         ensurePropertyAccessorsInitialized();
@@ -126,7 +126,7 @@ org.springframework.beans.factory.BeanExpressionException: Expression parsing fa
         }
     }
 
-</java>
+</code>
 
 ##问题总结
 在多线程环境下使用Spring 3.0中的SpEL时要注意避免：
@@ -139,7 +139,7 @@ org.springframework.beans.factory.BeanExpressionException: Expression parsing fa
 ##解决方式
 * 在Spring 3.0中， 可以封装<code>getBean(String name)</code>, 将方法同步化，避免多线程同时创建：
 
-<java>
+<code>
 
     public class BeanUtil {
         private static final ApplicationContext FACTORY = new ClassPathXmlApplicationContext("spring-beans.xml");
@@ -149,10 +149,10 @@ org.springframework.beans.factory.BeanExpressionException: Expression parsing fa
         }
     }
 
-</java>
+</code>
 * Spring 3.1通过修改了org.springframework.expression.spel.support.StandardEvaluationContext也到达了线程安全的目的：
 
-<java>
+<code>
 
     private void ensureMethodResolversInitialized() {
         if (this.methodResolvers == null) {
@@ -168,7 +168,7 @@ org.springframework.beans.factory.BeanExpressionException: Expression parsing fa
         }
     }
     
-</java>
+</code>
 
 
 
