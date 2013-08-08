@@ -24,11 +24,10 @@ SpEL是从Spring 3.0开始引入的一个功能，用于支持运行时查询和
 > The Spring Expression Language (SpEL for short) is a powerful expression language that supports querying and manipulating an object graph at runtime. The language syntax is similar to Unified EL but offers additional features, most notably method invocation and basic string templating functionality.
 
 通常在定义Bean的xml中用‘#{}’包含一段SpEL， 如：
- 
-  <bean id="BeanA" class="com.ecy.CA" scope="prototype">
+
+	<bean id="BeanA" class="com.ecy.CA" scope="prototype">
 		<property name="name" value="#{Entity.getP(T(com.ecy.Entity).PA)}"/>
 	</bean>
-
 
 可以通过如下方式来得到一个Bean的实例
 
