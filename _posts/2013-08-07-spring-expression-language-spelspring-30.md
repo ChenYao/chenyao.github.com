@@ -1,17 +1,8 @@
----
-layout: post
-title: "Spring Expression Language (SpEL)在多线程环境下的一个问题(Spring 3.0)"
-description: ""
-category: 
-tags: [Spring]
----
-{% include JB/setup %}
-
 ##问题描述
 项目基于Spring 3.0， 在Bean文件的定义中使用了SpEL,系统在运行初始化的时候会首先载入一些Bean。在新定义了一个Bean后偶尔会因为如下异常导致初始化失败。
-<code>
-org.springframework.beans.factory.BeanExpressionException: Expression parsing failed; nested exception is org.springframework.expression.spel.SpelEvaluationException: EL1004E:(pos 7): Method call: Method getP(java.lang.String) cannot be found on com.ecy.Entity type
-</code>
+
+	org.springframework.beans.factory.BeanExpressionException: Expression parsing failed; nested exception is org.springframework.expression.spel.SpelEvaluationException: EL1004E:(pos 7): Method call: Method getP(java.lang.String) cannot be found on com.ecy.Entity type
+
 
 思考点：
 
@@ -34,8 +25,7 @@ SpEL是从Spring 3.0开始引入的一个功能，用于支持运行时查询和
 	ApplicationContext context = new ClassPathXmlApplicationContext("spring-beans.xml");
 	context.getBean(String beanName);
 
-SpEL主要是要在<code>getBean</code>的过程中得到值，如上文<code>BeanA</code>的例子中，<code>Entity</code>的定义如下：
-<code>
+SpEL主要是要在getBean的过程中得到值，如上文BeanA的例子中，Entity的定义如下：
 
     public class Entity {
 		public static final String PA = "PA";	
@@ -45,29 +35,28 @@ SpEL主要是要在<code>getBean</code>的过程中得到值，如上文<code>Be
 			return configs.get(key);
 		}
 	}
-</code>
 
-由上可以看出<code>BeanA</code>的这个SpEL实际上是要在创建的过程中拿到<code>Entity</code>对象中<code>configs<code>中key为"PA"的值来做为自己的<code>name</code>.
+由上可以看出BeanA的这个SpEL实际上是要在创建的过程中拿到Entity对象中configs中key为"PA"的值来做为自己的name.
 
 
 ##代码分析
 这个过程可以简化为以下4步：
 
-1. <code>
+1. >
 	ExpressionParser parser = new SpelExpressionParser(); //get expression parser
-  </code>
 
-	<code>Entity entity = new Entity();</code>
-
-	
-2. <code>EvaluationContext ec = new StandardEvaluationContext(entity); //get evaluation context </code>
-3. <code>Expression expression = parser.parseExpression("getP(T(com.ecy.Entity).PA)"); //根据SpEL解析出表达式 </code>
-4. <code>value = expression.getValue(ec); //根据表达式取出值</code>
+   >	Entity entity = new Entity();	
+   
+2. >
+	EvaluationContext ec = new StandardEvaluationContext(entity); //get evaluation context 
+3. >
+	Expression expression = parser.parseExpression("getP(T(com.ecy.Entity).PA)"); //根据SpEL解析出表达式 
+4. >
+	value = expression.getValue(ec); //根据表达式取出值
 
 看看第二步的详细代码：
 
 org.springframework.context.expression.StandardBeanExpressionResolver.java
-<code>
 
     private final Map<BeanExpressionContext, StandardEvaluationContext> evaluationCache = new ConcurrentHashMap<BeanExpressionContext, StandardEvaluationContext>();
     Expression expr = this.expressionCache.get(value);
@@ -86,10 +75,8 @@ org.springframework.context.expression.StandardBeanExpressionResolver.java
     }
     return expr.getValue(sec);
 
-</code>
-可以看出一样的SpEL表达式总是得到同一个的Expression对象，并且这个类<code>StandardBeanExpressionResolver</code>是非线程安全的，多线程环境下，同样的<code>evalContext</code>对象可能会得到不同的<code>StandardEvaluationContext</code>(sec)对象。第四步正是Expression对象通过<code>sec</code>得到表达式值的。而<code>StandardEvaluationContext</code>
+可以看出一样的SpEL表达式总是得到同一个的Expression对象，并且这个类StandardBeanExpressionResolver是非线程安全的，多线程环境下，同样的evalContext对象可能会得到不同的StandardEvaluationContext(sec)对象。第四步正是Expression对象通过sec得到表达式值的。而StandardEvaluationContext
 也是一个非线程安全的类，代码如下：
-<code>
 
     public List<MethodResolver> getMethodResolvers() {
         ensureMethodResolversInitialized();
@@ -103,16 +90,14 @@ org.springframework.context.expression.StandardBeanExpressionResolver.java
         }
     }
 
-</code>
-可以看出，多线程环境下，<code>methodResolvers</code>可能返回为一个空的ArrayList.
+可以看出，多线程环境下，methodResolvers可能返回为一个空的ArrayList.
 
 这样就导致了如下的异常：
-<code>
+
 org.springframework.beans.factory.BeanExpressionException: Expression parsing failed; nested exception is org.springframework.expression.spel.SpelEvaluationException: EL1004E:(pos 7): Method call: Method getP(java.lang.String) cannot be found on com.ecy.Entity type
-</code>
+
 
 同样的道理，在这个类中还有同样的非线程安全的代码同样会导致相关的异常：
-<code>
 
     public List<PropertyAccessor> getPropertyAccessors() {
         ensurePropertyAccessorsInitialized();
@@ -126,20 +111,17 @@ org.springframework.beans.factory.BeanExpressionException: Expression parsing fa
         }
     }
 
-</code>
 
 ##问题总结
 在多线程环境下使用Spring 3.0中的SpEL时要注意避免：
 
-* 多线程通过<code>getBean</code>去取得同一个<code>Bean</code>对象，特别是当这个<code>Bean</code>的<code>scope</code>是<code>prototype</code>时。
+* 多线程通过getBean去取得同一个Bean对象，特别是当这个Bean的scope是prototype时。
 
-另外，也要避免多线程创建有相同SpEL表达式的<code>Bean</code>。
+另外，也要避免多线程创建有相同SpEL表达式的Bean。
 
 
 ##解决方式
-* 在Spring 3.0中， 可以封装<code>getBean(String name)</code>, 将方法同步化，避免多线程同时创建：
-
-<code>
+* 在Spring 3.0中， 可以封装getBean(String name), 将方法同步化，避免多线程同时创建：
 
     public class BeanUtil {
         private static final ApplicationContext FACTORY = new ClassPathXmlApplicationContext("spring-beans.xml");
@@ -149,10 +131,9 @@ org.springframework.beans.factory.BeanExpressionException: Expression parsing fa
         }
     }
 
-</code>
 * Spring 3.1通过修改了org.springframework.expression.spel.support.StandardEvaluationContext也到达了线程安全的目的：
 
-<code>
+>
 
     private void ensureMethodResolversInitialized() {
         if (this.methodResolvers == null) {
@@ -168,8 +149,4 @@ org.springframework.beans.factory.BeanExpressionException: Expression parsing fa
         }
     }
     
-</code>
-
-
-
 
