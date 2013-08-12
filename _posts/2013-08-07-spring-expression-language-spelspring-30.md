@@ -1,3 +1,12 @@
+---
+layout: post
+title: "Spring Expression Language (SpEL)在多线程环境下的一个问题(Spring 3.0)"
+description: ""
+category: 
+tags: [Spring]
+---
+{% include JB/setup %}
+
 ##问题描述
 项目基于Spring 3.0， 在Bean文件的定义中使用了SpEL,系统在运行初始化的时候会首先载入一些Bean。在新定义了一个Bean后偶尔会因为如下异常导致初始化失败。
 
